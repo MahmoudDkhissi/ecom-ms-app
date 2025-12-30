@@ -1,5 +1,6 @@
 package com.mdk.billingservice.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.mdk.billingservice.models.Customer;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,7 @@ public class Bill {
     private String description;
 
     @OneToMany(mappedBy = "bill")
+    @JsonManagedReference
     private List<ProductItem> productItems;
 
     @Transient

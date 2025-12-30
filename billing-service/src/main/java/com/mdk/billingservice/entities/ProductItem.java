@@ -1,6 +1,7 @@
 package com.mdk.billingservice.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.mdk.billingservice.models.Product;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -23,6 +24,7 @@ public class ProductItem {
     private Long quantity;
 
     @ManyToOne
+    @JsonBackReference
     private Bill bill;
 
     @Transient
