@@ -148,7 +148,7 @@ mvn spring-boot:run
 
 ---
 
-## Main Models (Billing Service)
+## Main Models
 
 ### Bill
 
