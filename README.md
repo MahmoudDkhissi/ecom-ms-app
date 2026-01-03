@@ -182,6 +182,116 @@ mvn spring-boot:run
 * `discount`
 
 ---
+# Centralized Configuration – Spring Cloud Config Server
+
+The platform uses **Spring Cloud Config Server** to externalize and centralize configuration for all microservices.
+
+---
+
+## Why Centralized Configuration?
+
+* Avoid configuration duplication across services
+* Centralize configuration management
+* Support multiple environments (`dev`, `prod`, etc.)
+* Version configuration using Git
+* Enable dynamic configuration refresh without restarting services
+
+---
+
+## Configuration Repository
+
+Configuration files are stored in a Git repository:
+```
+config-repo/
+├── billing-service.properties
+├── customer-service.properties
+├── inventory-service.properties
+├── application.properties
+```
+
+⚠️ File names **must match** the value of `spring.application.name`.
+
+---
+
+## Architecture Overview
+```
+        [ Git Config Repository ]
+                   |
+                   v
+            [ Config Server ]
+                   |
+       ------------------------
+       |          |           |           
+       v          v           v           
+      Billing  Customer  Inventory  
+```
+
+* All microservices fetch their configuration from the **Config Server**
+* Configuration is no longer embedded inside each microservice
+
+---
+
+## Microservice Client Configuration Example
+
+Each microservice imports its configuration from the Config Server:
+```properties
+spring.application.name=billing-service
+spring.config.import=optional:configserver:http://localhost:8888
+```
+
+---
+
+## Configuration Refresh Strategies
+
+By default, configuration does not refresh automatically after a Git commit. Spring Cloud provides two refresh mechanisms.
+
+### 1️⃣ Manual Refresh with Actuator
+
+**Steps:**
+
+1. Update configuration in the Git repository
+2. Commit the changes
+3. Trigger refresh manually on a specific service:
+```http
+POST /actuator/refresh
+```
+
+**Characteristics:**
+
+* Refreshes only the targeted microservice
+* Requires:
+  * Spring Boot Actuator
+  * `@RefreshScope` on beans using dynamic configuration
+* Useful for development and testing
+
+### 2️⃣ Distributed Refresh with Spring Cloud Bus (Recommended)
+
+Spring Cloud Bus propagates configuration changes to all microservices using a message broker (RabbitMQ or Kafka).
+
+**Flow:**
+```
+Git Commit
+   ↓
+Config Server
+   ↓
+Spring Cloud Bus
+   ↓
+All Microservices refresh automatically
+```
+
+**Trigger refresh once:**
+```http
+POST /actuator/busrefresh
+```
+
+**Characteristics:**
+
+* Asynchronous and scalable
+* Suitable for microservices architectures
+* Ensures configuration consistency across services
+* Avoids manual refresh per service
+
+---
 
 ## Key Points
 
