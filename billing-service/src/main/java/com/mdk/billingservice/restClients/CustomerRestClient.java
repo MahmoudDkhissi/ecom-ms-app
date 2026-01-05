@@ -13,6 +13,13 @@ public interface CustomerRestClient {
     @CircuitBreaker(name = "customer-cb", fallbackMethod = "getDefaultCustomer")
     Customer findById(@PathVariable Long id);
 
+    /**
+     * Provides a default customer instance to be used as a fallback when the primary customer retrieval fails.
+     *
+     * @param id The ID of the customer to be used for the default customer instance.
+     * @param ignoredE The exception that triggered the fallback mechanism.
+     * @return A default Customer instance with predefined values.
+     */
     default Customer getDefaultCustomer(Long id, Exception ignoredE) {
         Customer customer = new Customer();
         customer.setId(id);
