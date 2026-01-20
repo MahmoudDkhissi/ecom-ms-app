@@ -292,6 +292,56 @@ POST /actuator/busrefresh
 * Avoids manual refresh per service
 
 ---
+---
+
+## 🔐 Security & Identity Management
+
+The platform implements a **stateless security architecture** based on **OAuth2 and OpenID Connect (OIDC)**, using **Keycloak** as the Identity Provider.
+
+### 🏗️ Security Architecture Overview
+
+* **Identity Provider (IdP):** Keycloak manages users, roles, and authentication.
+* **Authentication Flow:** The **Reactive Gateway** handles the initial authentication. Once authenticated, the user receives a **JWT (JSON Web Token)**.
+* **Resource Servers:** Each microservice (Customer, Inventory, Billing) acts as a **Resource Server**. They independently validate the JWT's signature and expiration using Keycloak's public keys.
+* **RBAC (Role-Based Access Control):** Access is restricted based on user roles (`ADMIN`, `USER`) defined in Keycloak.
+
+
+
+### 🛠️ Key Security Implementations
+
+#### 1. Custom Role Mapping (KeycloakRoleConverter)
+By default, Spring Security looks for roles in the `scope` claim. We implemented a custom `KeycloakRoleConverter` to:
+* Extract roles from the `realm_access.roles` JSON path in the JWT.
+* Map them to Spring Security authorities with the `ROLE_` prefix (e.g., `ROLE_ADMIN`).
+* Enable method-level security using `@PreAuthorize("hasRole('ADMIN')")`.
+
+#### 2. Token Propagation (Token Relay)
+To maintain security during inter-service communication (e.g., when `Billing Service` calls `Customer Service` via Feign):
+* A **Feign Request Interceptor** was created.
+* It captures the JWT from the current `SecurityContext`.
+* It injects the token into the `Authorization: Bearer <token>` header of the outgoing request.
+* This ensures the downstream service can also verify the user's identity and roles.
+
+### 🚀 How to Test Security
+
+#### 1. Obtain an Access Token
+Send a POST request to Keycloak to get a JWT:
+```bash
+curl -X POST "http://localhost:8080/realms/ecom-realm/protocol/openid-connect/token" \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "grant_type=password" \
+     -d "client_id=your_client_id" \
+     -d "username=your_username" \
+     -d "password=*****"
+   ```  
+#### 2. Call a Secured Endpoint
+Use the `access_token` received from Keycloak to call the Gateway. The Gateway will then relay this token to the appropriate microservice:
+
+```bash
+curl -X GET "http://localhost:8888/api/bills" \
+     -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
+```
+---
 
 ## Key Points
 
