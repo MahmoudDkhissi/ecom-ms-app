@@ -1,4 +1,4 @@
-package com.mdk.billingservice.security;
+package com.mdk.commonsecurity;
 
 import feign.RequestInterceptor;
 import org.springframework.context.annotation.Bean;
