@@ -1,0 +1,33 @@
+services:
+  # --- EUREKA DISCOVERY SERVICE ---
+  discovery-service:
+    build: ./discovery-service
+    container_name: discovery-service
+    ports:
+      - "8761:8761"
+    networks:
+      - mdk-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- CONFIG SERVICE ---
+  config-service:
+    build: ./config-service
+    container_name: config-service
+    ports:
+      - "9999:9999"
+    environment:
+      # On lui dit de s'enregistrer aussi sur Eureka
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+    networks:
+      - mdk-network
+
+networks:
+  mdk-network:
+    driver: bridge
