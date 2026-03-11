@@ -28,6 +28,46 @@ services:
     networks:
       - mdk-network
 
+  # --- KEYCLOAK SERVICE ---
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.0
+    container_name: keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      # Admin credentials
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
+      
+      # H2 Database Configuration with file persistence
+      - KC_DB=dev-file
+
+      # Keycloak proxy settings for proper URL handling
+      - KC_PROXY=edge
+      
+      # Log level
+      - KC_LOG_LEVEL=INFO
+    command:
+      - "start-dev"
+    volumes:
+      # Volume pour persister la base de données H2
+      - keycloak_data:/opt/keycloak/data
+    networks:
+      - mdk-network
+    depends_on:
+      - discovery-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
 networks:
   mdk-network:
     driver: bridge
+
+volumes:
+  keycloak_data:
+
