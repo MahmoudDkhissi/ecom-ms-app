@@ -30,38 +30,44 @@ services:
 
   # --- KEYCLOAK SERVICE ---
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.0
-    container_name: keycloak
-    ports:
-      - "8080:8080"
-    environment:
-      # Admin credentials
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin123
-      
-      # H2 Database Configuration with file persistence
-      - KC_DB=dev-file
-
-      # Keycloak proxy settings for proper URL handling
-      - KC_PROXY=edge
-      
-      # Log level
-      - KC_LOG_LEVEL=INFO
+    image: quay.io/keycloak/keycloak:22.0.5
     command:
-      - "start-dev"
+      - start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-file
+      KC_HEALTH_ENABLED: true
+      KC_HOSTNAME: keycloak
+    ports:
+      - '8080:8080'
     volumes:
-      # Volume pour persister la base de données H2
       - keycloak_data:/opt/keycloak/data
+    depends_on:
+      discovery-service:
+        condition: service_healthy
     networks:
       - mdk-network
-    depends_on:
-      - discovery-service
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
+
+  billing-service:
+    build: ./billing-service
+    container_name: billing-service
+    ports:
+      - "8082:8082"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:9999
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/ecom-realm
+    depends_on:
+      config-service:
+        condition: service_started
+      discovery-service:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - mdk-network
 
 
 networks:
