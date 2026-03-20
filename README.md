@@ -122,6 +122,170 @@ mvn spring-boot:run
 
 ---
 
+## 🐳 Running with Docker & Docker Compose (Recommended)
+
+The entire microservices platform can be containerized and orchestrated using **Docker** and **Docker Compose**. This is the **recommended approach** for development and deployment.
+
+### Prerequisites
+
+* Docker installed ([Download](https://www.docker.com/products/docker-desktop))
+* Docker Compose installed (included with Docker Desktop)
+* Build all services first: `mvn clean install` in each service directory
+
+### Build Docker Images
+
+Build all service images:
+
+```bash
+docker-compose build
+```
+
+### Start All Services
+
+Launch the entire platform with a single command:
+
+```bash
+docker-compose up -d
+```
+
+Or, to see logs in real-time:
+
+```bash
+docker-compose up
+```
+
+### Service Details
+
+The `docker-compose.yml` orchestrates the following services:
+
+| Service | Port | Container Name | Purpose |
+|---------|------|---|---------|
+| **discovery-service** | 8761 | discovery-service | Eureka Service Registry |
+| **config-service** | 9999 | config-service | Spring Cloud Config Server |
+| **keycloak** | 8080 | keycloak | Identity Provider (OAuth2/OIDC) |
+| **billing-service** | 8082 | billing-service | Billing microservice |
+| **inventory-service** | 8083 | inventory-service | Inventory microservice |
+| **customer-service** | 8081 | customer-service | Customer microservice |
+| **gateway-service** | 8888 | gateway-service | Reactive API Gateway |
+
+### Service Dependencies & Startup Order
+
+Docker Compose automatically manages startup order using health checks:
+
+```
+discovery-service (starts first)
+        ↓
+config-service (waits for discovery-service to be healthy)
+        ↓
+keycloak (waits for discovery-service to be healthy)
+        ↓
+billing-service (waits for config-service & keycloak to be healthy)
+        ↓
+inventory-service (waits for billing-service to be healthy)
+        ↓
+customer-service (waits for billing-service to be healthy)
+        ↓
+gateway-service (waits for all microservices to be healthy)
+```
+
+### Environment Variables
+
+Each service is configured with the following environment variables for Docker networking:
+
+```yaml
+EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:9999
+KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/ecom-realm
+```
+
+These variables allow services to communicate via **container names** (Docker DNS) instead of `localhost`.
+
+### Networking
+
+All services are connected through a **custom bridge network** (`mdk-network`), enabling service-to-service communication using container names (e.g., `http://config-service:9999`).
+
+### Data Persistence
+
+* **Keycloak Data:** Stored in a named volume `keycloak_data` to persist realm configuration and user data across container restarts.
+* **Microservices:** Use in-memory H2 databases (no persistence across restarts by design).
+
+### View Running Containers
+
+```bash
+docker-compose ps
+```
+
+### View Service Logs
+
+View all logs:
+```bash
+docker-compose logs -f
+```
+
+View specific service logs:
+```bash
+docker-compose logs -f billing-service
+```
+
+### Stop All Services
+
+```bash
+docker-compose down
+```
+
+To also remove volumes (careful: deletes Keycloak data):
+```bash
+docker-compose down -v
+```
+
+### Access Services
+
+Once all services are running and healthy:
+
+* **Gateway:** http://localhost:8888
+* **Keycloak Admin Console:** http://localhost:8080/admin (admin / admin)
+* **Billing Service Swagger:** http://localhost:8082/swagger-ui.html
+* **Customer Service Swagger:** http://localhost:8081/swagger-ui.html
+* **Inventory Service Swagger:** http://localhost:8083/swagger-ui.html
+* **Eureka Dashboard:** http://localhost:8761
+
+### Testing with Docker
+
+#### 1. Authenticate with Keycloak
+```bash
+curl -X POST "http://localhost:8080/realms/ecom-realm/protocol/openid-connect/token" \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "grant_type=password" \
+     -d "client_id=your_client_id" \
+     -d "username=your_username" \
+     -d "password=your_password"
+```
+
+#### 2. Call an Endpoint Through the Gateway
+```bash
+curl -X GET "http://localhost:8888/api/bills/1" \
+     -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
+```
+
+### Troubleshooting Docker
+
+**Issue:** Service fails to start with "dependency failed to start"
+
+**Solution:** Ensure all images are built and health checks pass:
+```bash
+docker-compose ps
+docker-compose logs <service_name>
+```
+
+**Issue:** Services can't communicate
+
+**Solution:** Verify all services are on the same network:
+```bash
+docker network inspect ecom-ms-app_mdk-network
+```
+
+---
+
 ## API and Gateway Routing
 
 ### Example routes defined in the Gateway :

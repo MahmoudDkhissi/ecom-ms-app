@@ -25,6 +25,11 @@ services:
     depends_on:
       discovery-service:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - mdk-network
 
@@ -61,13 +66,75 @@ services:
       - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/ecom-realm
     depends_on:
       config-service:
-        condition: service_started
+        condition: service_healthy
       discovery-service:
         condition: service_healthy
       keycloak:
         condition: service_started
     networks:
       - mdk-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory-service
+    ports:
+      - "8083:8083"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:9999
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/ecom-realm
+    depends_on:
+      billing-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+        - mdk-network
+
+  customer-service:
+    build: ./customer-service
+    container_name: customer-service
+    ports:
+      - "8081:8081"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:9999
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/ecom-realm
+    depends_on:
+      billing-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+        - mdk-network
+
+  gateway-service:
+    build: ./gateway-service
+    container_name: gateway-service
+    ports:
+      - "8888:8888"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-service:9999
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/ecom-realm
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      customer-service:
+        condition: service_healthy
+    networks:
+        - mdk-network
 
 
 networks:
