@@ -1,7 +1,13 @@
 import api from './axiosInstance'
 
 export const getAllBills = () =>
-    api.get('/api/bills').then(res => res.data)
+    api.get('/bills').then(res => res.data)
+
+export const getMyBills = () =>
+    api.get('/api/bills/my-bills').then(res => res.data)
+
+export const getBillsByCustomer = (customerId) =>
+    api.get(`/api/bills?customerId=${customerId}`).then(res => res.data)
 
 export const getBillById = (id) =>
     api.get(`/api/bills/${id}`).then(res => res.data)

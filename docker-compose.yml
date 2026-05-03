@@ -44,6 +44,9 @@ services:
       KC_DB: dev-file
       KC_HEALTH_ENABLED: true
       KC_HOSTNAME: keycloak
+      KC_HOSTNAME_ADMIN: localhost
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
     ports:
       - '8080:8080'
     volumes:

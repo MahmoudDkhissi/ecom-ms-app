@@ -3,6 +3,7 @@ package com.mdk.customerservice.controllers;
 
 import com.mdk.customerservice.entities.Customer;
 import com.mdk.customerservice.repositories.CustomerRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,13 @@ public class CustomerController {
         return customerRepository.findById(id).orElse(null);
     }
 
+    @GetMapping("/customers/by-email/{email}")
+    public ResponseEntity<Object> getByEmail(@PathVariable String email) {
+        return customerRepository.findByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
     @PostMapping("/customers")
     public Customer addCustomer(@RequestBody Customer customer) {
         return customerRepository.save(customer);

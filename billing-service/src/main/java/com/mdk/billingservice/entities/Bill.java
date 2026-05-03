@@ -32,4 +32,7 @@ public class Bill {
     @Transient
     private Customer customer;
 
+    @Transient
+    private String email;
+
 }

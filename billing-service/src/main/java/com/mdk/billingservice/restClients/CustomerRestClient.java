@@ -27,4 +27,7 @@ public interface CustomerRestClient {
         customer.setEmail("default@gmail.com");
         return customer;
     }
+
+    @GetMapping("/customers/by-email/{email}")
+    Customer findByEmail(@PathVariable String email);
 }
